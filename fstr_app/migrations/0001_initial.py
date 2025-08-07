@@ -63,8 +63,8 @@ class Migration(migrations.Migration):
                 ('spring_level', models.CharField(blank=True, max_length=10, null=True)),
                 ('autumn_level', models.CharField(blank=True, max_length=10, null=True)),
                 ('status', models.CharField(choices=[('new', 'Новый'), ('pending', 'На модерации'), ('accepted', 'Принят'), ('rejected', 'Отклонен')], default='new', max_length=10)),
-                ('coords', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr.coords')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr.user')),
+                ('coords', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr_app.coords')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr_app.user')),
             ],
             options={
                 'db_table': 'pereval_added',
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
             name='PerevalAddedImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('pereval', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='image', to='fstr.perevaladded')),
+                ('pereval', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='image', to='fstr_app.perevaladded')),
             ],
             options={
                 'db_table': 'pereval_added_images',
@@ -86,7 +86,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('date_added', models.DateTimeField(auto_now_add=True)),
                 ('img', models.BinaryField()),
-                ('pereval', models.ManyToManyField(related_name='pereval_images', through='fstr.PerevalAddedImage', to='fstr.perevaladded')),
+                ('pereval', models.ManyToManyField(related_name='pereval_images', through='fstr_app.PerevalAddedImage', to='fstr_app.perevaladded')),
             ],
             options={
                 'db_table': 'pereval_images',
@@ -95,6 +95,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='perevaladdedimage',
             name='image',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr.perevalimage'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fstr_app.perevalimage'),
         ),
     ]
