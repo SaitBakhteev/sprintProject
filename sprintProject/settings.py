@@ -34,7 +34,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'sprint.urls'
+ROOT_URLCONF = 'sprintProject.urls'
 
 TEMPLATES = [
     {
