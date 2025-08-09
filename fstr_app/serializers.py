@@ -1,3 +1,5 @@
+import binascii
+
 from rest_framework import serializers
 from .models import User, Coords, PerevalAdded, PerevalImage, PerevalAddedImage
 
@@ -34,13 +36,17 @@ class ImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PerevalImage
-        fields = ['data']
+        fields = ['data', 'title']
 
     def validate_data(self, value):
-        decoded_data = decode_base64_image(value)
-        if not decoded_data:
-            raise serializers.ValidationError("Некорректный формат изображения")
-        return decoded_data
+        # Удаляем префикс data:image/...;base64, если есть
+        if isinstance(value, str) and value.startswith('data:image'):
+            _, value = value.split(';base64,')
+
+        try:
+            return base64.b64decode(value)  # Декодируем в байты
+        except (TypeError, binascii.Error):
+            raise serializers.ValidationError("Некорректный формат Base64")
 
     def create(self, validated_data):
         # Достаём данные
@@ -59,7 +65,7 @@ class ImageSerializer(serializers.ModelSerializer):
 class PerevalAddedSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     coords = CoordsSerializer()
-    images = ImageSerializer(many=True)
+    images = ImageSerializer(many=True, source='pereval_images')
 
     class Meta:
         model = PerevalAdded
@@ -70,7 +76,8 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Обработка пользователя
         user_data = validated_data.pop('user')
-        user, created = User.objects.get_or_create(
+
+        user = User.objects.update_or_create(
             email=user_data['email'],
             defaults={
                 'first_name': user_data.get('first_name', ''),
@@ -78,14 +85,14 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
                 'middle_name': user_data.get('middle_name', ''),
                 'phone': user_data.get('phone', '')
             }
-        )
+        )[0]
 
         # Обработка координат
         coords_data = validated_data.pop('coords')
         coords = Coords.objects.create(**coords_data)
 
         # Обработка изображений
-        images_data = validated_data.pop('images', [])
+        images_data = validated_data.pop('pereval_images', [])
 
         # Создание перевала
         pereval = PerevalAdded.objects.create(

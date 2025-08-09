@@ -63,6 +63,7 @@ class PerevalAdded(models.Model):
 class PerevalImage(models.Model):
     date_added = models.DateTimeField(auto_now_add=True)
     img = models.BinaryField()
+    title = models.CharField(max_length=50, default='Без названия')
     pereval = models.ManyToManyField(PerevalAdded, through='PerevalAddedImage', related_name='pereval_images')
 
     class Meta:

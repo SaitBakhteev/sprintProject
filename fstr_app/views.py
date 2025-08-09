@@ -57,7 +57,7 @@ def image_to_base64():
                 },
                 "images": [
                     {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Седловина"},
-                    {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Подъём"}
+                    # {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Подъём"}
                 ]
             },
             request_only=True
