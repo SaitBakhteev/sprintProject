@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from .models import PerevalAdded
 from .serializers import PerevalAddedSerializer
@@ -69,29 +69,52 @@ class PerevalCreateView(generics.CreateAPIView):
     serializer_class = PerevalAddedSerializer
 
     def create(self, request, *args, **kwargs):
-        # Преобразуем входные данные в формат, ожидаемый сериализатором
-        data = request.data.copy()
-        data['beautyTitle'] = data.pop('beauty_title', '')
+        try:
+            # Преобразуем входные данные в формат, ожидаемый сериализатором
+            data = request.data.copy()
+            data['beautyTitle'] = data.pop('beauty_title', '')
 
-        # Обрабатываем уровень сложности
-        level_data = data.pop('level', {})
-        data['winter_level'] = level_data.get('winter', '')
-        data['summer_level'] = level_data.get('summer', '')
-        data['autumn_level'] = level_data.get('autumn', '')
-        data['spring_level'] = level_data.get('spring', '')
+            # Обрабатываем уровень сложности
+            level_data = data.pop('level', {})
+            data['winter_level'] = level_data.get('winter', '')
+            data['summer_level'] = level_data.get('summer', '')
+            data['autumn_level'] = level_data.get('autumn', '')
+            data['spring_level'] = level_data.get('spring', '')
 
-        # Обрабатываем пользователя
-        user_data = data.pop('user', {})
-        data['user'] = {
-            'email': user_data.get('email', ''),
-            'first_name': user_data.get('name', ''),
-            'last_name': user_data.get('fam', ''),
-            'middle_name': user_data.get('otc', ''),
-            'phone': user_data.get('phone', '')
-        }
+            # Обрабатываем пользователя
+            user_data = data.pop('user', {})
+            data['user'] = {
+                'email': user_data.get('email', ''),
+                'first_name': user_data.get('name', ''),
+                'last_name': user_data.get('fam', ''),
+                'middle_name': user_data.get('otc', ''),
+                'phone': user_data.get('phone', '')
+            }
 
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(
+                data={
+                    'status': status.HTTP_200_OK,
+                    'message': 'Отправлено успешно',
+                    'id': serializer.instance.id  # id созданной записи перевала
+                },
+                status=status.HTTP_200_OK,
+                headers={'Content-Type': 'application/json'})
+        except serializers.ValidationError as e:
+            return Response(
+                data={'status': status.HTTP_400_BAD_REQUEST,
+                      'message': str(e.detail),
+                      'id': None},
+                status=status.HTTP_400_BAD_REQUEST,
+                content_type='application/json'
+            )
+        except Exception as e:
+            return Response(
+                data={'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                      'message': f'Ошибка при выполнении операции: {str(e)}',
+                      'id': None},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content_type='application/json'
+            )
