@@ -34,13 +34,27 @@ class ImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PerevalImage
-        fields = ['data', 'title']
+        fields = ['data']
 
     def validate_data(self, value):
         decoded_data = decode_base64_image(value)
         if not decoded_data:
             raise serializers.ValidationError("Некорректный формат изображения")
         return decoded_data
+
+    def create(self, validated_data):
+        # Достаём данные
+        image_data = validated_data.pop('data')  # присваиваем с ключа 'data'
+        title = validated_data.pop('title')
+
+        # Создаём объект изображения
+
+        ''' Присваиваем полю "img" значения ключа, поскольку согласно ТЗ в эндпоинт из тела
+         запроса передается ключ "data" '''
+        return PerevalImage.objects.create(
+            img=image_data,
+            title=title
+        )
 
 class PerevalAddedSerializer(serializers.ModelSerializer):
     user = UserSerializer()

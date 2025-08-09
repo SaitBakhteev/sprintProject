@@ -4,6 +4,26 @@ from .models import PerevalAdded
 from .serializers import PerevalAddedSerializer
 from drf_spectacular.utils import extend_schema, OpenApiExample
 
+import base64
+import os
+from django.conf import settings
+
+
+# Функция-заглушка для преобразования образца картинки в строку base64
+def image_to_base64():
+    # Путь к файлу в корне проекта
+    file_path = os.path.join(settings.BASE_DIR, 'image.jpg')  # загрузка картинки заглушки
+
+    try:
+        with open(file_path, 'rb') as image_file:
+            # Читаем файл и кодируем в base64
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            return encoded_string
+    except FileNotFoundError:
+        return "Ошибка: файл example.jpg не найден в корне проекта"
+    except Exception as e:
+        return f"Ошибка при обработке файла: {str(e)}"
+
 
 @extend_schema(
     summary="Добавить новый перевал",
@@ -36,8 +56,8 @@ from drf_spectacular.utils import extend_schema, OpenApiExample
                     "spring": ""
                 },
                 "images": [
-                    {"data": "<картинка1>", "title": "Седловина"},
-                    {"data": "<картинка>", "title": "Подъём"}
+                    {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Седловина"},
+                    {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Подъём"}
                 ]
             },
             request_only=True
