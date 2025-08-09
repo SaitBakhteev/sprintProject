@@ -13,6 +13,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SITE_ID = 1
+
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -20,8 +22,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Добавленные приложения
+    # Приложение проекта
     'fstr_app',
+
+    # Добавленные библиотеки
+    'rest_framework', 'django_filters', 'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +57,10 @@ TEMPLATES = [
         },
     },
 ]
+
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_URL = '/static/'
+# STATIC_ROOT = BASE_DIR / 'static'
 
 WSGI_APPLICATION = 'sprintProject.wsgi.application'
 
@@ -89,7 +98,5 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
-STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
