@@ -95,12 +95,10 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         else:  # если пользователя с таким email нет, то создаем его
             user = User.objects.create(
                 email=user_data['email'],
-                defaults={
-                    'first_name': user_data.get('first_name', ''),
-                    'last_name': user_data.get('last_name', ''),
-                    'middle_name': user_data.get('middle_name', ''),
-                    'phone': user_data.get('phone', '')
-                }
+                first_name=user_data.get('first_name', ''),
+                last_name=user_data.get('last_name', ''),
+                middle_name=user_data.get('middle_name', ''),
+                phone=user_data.get('phone', ''),
             )
 
         # Обработка координат
