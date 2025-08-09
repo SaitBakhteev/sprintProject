@@ -24,6 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'first_name', 'last_name', 'middle_name', 'phone']
 
+        # Здесь отключаем валидатор уникальности email
+        extra_kwargs = {'email': {'validators': []}}
+
 
 class CoordsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,16 +79,29 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Обработка пользователя
         user_data = validated_data.pop('user')
+        if User.objects.filter(email=user_data.get('email')).exists():
+            user = User.objects.get(email=user_data.get('email'))
 
-        user = User.objects.update_or_create(
-            email=user_data['email'],
-            defaults={
-                'first_name': user_data.get('first_name', ''),
-                'last_name': user_data.get('last_name', ''),
-                'middle_name': user_data.get('middle_name', ''),
-                'phone': user_data.get('phone', '')
-            }
-        )[0]
+            # Если у пользователя поменялись какие-либо поля, то обновляем его
+            has_changes = any(
+                getattr(user, field) != value
+                for field, value in user_data.items()
+            )
+            if has_changes:
+                print('есть замена')
+                for field, value in user_data.items():
+                    setattr(user, field, value)
+                user.save()
+        else:  # если пользователя с таким email нет, то создаем его
+            user = User.objects.create(
+                email=user_data['email'],
+                defaults={
+                    'first_name': user_data.get('first_name', ''),
+                    'last_name': user_data.get('last_name', ''),
+                    'middle_name': user_data.get('middle_name', ''),
+                    'phone': user_data.get('phone', '')
+                }
+            )
 
         # Обработка координат
         coords_data = validated_data.pop('coords')
