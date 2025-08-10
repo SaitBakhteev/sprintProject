@@ -1,5 +1,6 @@
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from .models import PerevalAdded
 from .serializers import PerevalAddedSerializer
 from drf_spectacular.utils import extend_schema, OpenApiExample
@@ -118,3 +119,71 @@ class PerevalCreateView(generics.CreateAPIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content_type='application/json'
             )
+
+
+class PerevalDetailView(generics.RetrieveAPIView):
+    queryset = PerevalAdded.objects.all()
+    serializer_class = PerevalAddedSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
+class PerevalUpdateView(generics.UpdateAPIView):
+    queryset = PerevalAdded.objects.all()
+    serializer_class = PerevalAddedSerializer
+    http_method_names = ['patch']  # Разрешаем только PATCH
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+
+        try:
+            # Преобразуем входные данные как в create
+            data = request.data.copy()
+            data['beautyTitle'] = data.pop('beauty_title', instance.beautyTitle)
+
+            level_data = data.pop('level', {})
+            data['winter_level'] = level_data.get('winter', instance.winter_level)
+            data['summer_level'] = level_data.get('summer', instance.summer_level)
+            data['autumn_level'] = level_data.get('autumn', instance.autumn_level)
+            data['spring_level'] = level_data.get('spring', instance.spring_level)
+
+            # Исключаем возможность изменения пользователя
+            if 'user' in data:
+                del data['user']
+
+            serializer = self.get_serializer(
+                instance,
+                data=data,
+                partial=partial
+            )
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+
+            return Response({
+                'state': 1,
+                'message': 'Запись успешно обновлена'
+            })
+        except serializers.ValidationError as e:
+            return Response({
+                'state': 0,
+                'message': str(e.detail)
+            }, status=400)
+        except Exception as e:
+            return Response({
+                'state': 0,
+                'message': f'Ошибка при обновлении: {str(e)}'
+            }, status=500)
+
+
+class PerevalUserListView(generics.ListAPIView):
+    serializer_class = PerevalAddedSerializer
+
+    def get_queryset(self):
+        email = self.request.GET.get('user__email', None)
+        if email:
+            return PerevalAdded.objects.filter(user__email=email)
+        return PerevalAdded.objects.none()
