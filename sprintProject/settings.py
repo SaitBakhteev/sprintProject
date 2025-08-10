@@ -117,13 +117,28 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'FTSR API - service',
-    'DESCRIPTION': 'API для платформы обмена вещами',
+    'DESCRIPTION': 'API для работы с БД федерации спорт туризма',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    # Включить автоматическое использование docstring
+    'PREPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.preprocess_exclude_path_format',
+    ],
+    'APPEND_COMPONENTS': {
+        'schemas': {
+            'ExampleComponent': {
+                'description': 'Автоматическое описание из docstring',
+            }
+        }
+    },
+    # Настройки Swagger UI
     'SWAGGER_UI_SETTINGS': {
         'deepLinking': True,
-        'persistAuthorization': True,
+        'persistAuthorization': False,
+        'displayOperationId': False,  # Показывать ID операции
+        'displayRequestDuration': False,
     },
-    'COMPONENT_SPLIT_REQUEST': True,
+    # Автоматически использовать docstring из view-классов
     'SCHEMA_PATH_PREFIX': r'/api/',
+    'SCHEMA_COERCE_PATH_PK': True,
 }

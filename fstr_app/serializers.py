@@ -1,5 +1,7 @@
 import binascii
 
+from django.db import transaction
+
 from rest_framework import serializers
 from .models import User, Coords, PerevalAdded, PerevalImage, PerevalAddedImage
 
@@ -129,39 +131,39 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         return pereval
 
     def update(self, instance, validated_data):
-        # Проверяем статус - можно редактировать только если статус 'new'
-        if instance.status != 'new':
-            raise serializers.ValidationError(
-                "Редактирование запрещено: запись уже прошла модерацию"
-            )
-
-        # Обрабатываем координаты
-        coords_data = validated_data.pop('coords', None)
-        if coords_data:
-            coords_serializer = self.fields['coords']
-            coords_serializer.update(instance.coords, coords_data)
-
-        # Обрабатываем изображения
-        images_data = validated_data.pop('pereval_images', None)
-        if images_data:
-            # Удаляем старые изображения
-            instance.images.all().delete()
-
-            # Добавляем новые изображения
-            for image_data in images_data:
-                img = PerevalImage.objects.create(
-                    img=image_data['data'],
-                    title=image_data['title']
-                )
-                PerevalAddedImage.objects.create(
-                    pereval=instance,
-                    image=img
+        with transaction.atomic():
+            # Проверяем статус - можно редактировать только если статус 'new'
+            if instance.status != 'new':
+                raise serializers.ValidationError(
+                    "Редактирование запрещено: запись уже прошла модерацию"
                 )
 
-        # Обновляем остальные поля
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            # Обрабатываем координаты
+            coords_data = validated_data.pop('coords', None)
+            if coords_data:
+                coords_serializer = self.fields['coords']
+                coords_serializer.update(instance.coords, coords_data)
 
-        instance.save()
-        return instance
+            # Обрабатываем изображения
+            images_data = validated_data.pop('pereval_images', None)
+            if images_data:
+                # Удаляем старые связи через промежуточную модель PerevalAddedImage
+                PerevalAddedImage.objects.filter(pereval=instance).delete()
 
+                # Создаем новые изображения и связи
+                for image_data in images_data:
+                    img = PerevalImage.objects.create(
+                        img=image_data['data'],
+                        title=image_data['title']
+                    )
+                    PerevalAddedImage.objects.create(
+                        pereval=instance,
+                        image=img
+                    )
+
+            # Обновляем остальные поля
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+
+            instance.save()
+            return instance

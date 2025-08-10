@@ -11,9 +11,9 @@ from django.conf import settings
 
 
 # Функция-заглушка для преобразования образца картинки в строку base64
-def image_to_base64():
+def image_to_base64(filename: str):
     # Путь к файлу в корне проекта
-    file_path = os.path.join(settings.BASE_DIR, 'image.jpg')  # загрузка картинки заглушки
+    file_path = os.path.join(settings.BASE_DIR, filename)  # загрузка картинки заглушки
 
     try:
         with open(file_path, 'rb') as image_file:
@@ -57,7 +57,7 @@ def image_to_base64():
                     "spring": ""
                 },
                 "images": [
-                    {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Седловина"},
+                    {"data": f"data:image/jpeg;base64,{image_to_base64('image.jpg')}", "title": "Седловина"},
                     # {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Подъём"}
                 ]
             },
@@ -121,6 +121,7 @@ class PerevalCreateView(generics.CreateAPIView):
             )
 
 
+@extend_schema(description='Получение данных перевала по ID (включая статус модерации).')
 class PerevalDetailView(generics.RetrieveAPIView):
     queryset = PerevalAdded.objects.all()
     serializer_class = PerevalAddedSerializer
@@ -131,6 +132,40 @@ class PerevalDetailView(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+@extend_schema(
+    methods=['PATCH'],
+    summary="Редактировать перевал",
+    description="Редактирует данные о перевале, но без изменения данных пользователя",
+    examples=[
+        OpenApiExample(
+            'Пример запроса',
+            value={
+                "beauty_title": "тракт ",
+                "title": "Чуйский",
+                "other_titles": "Алтайские перевалы",
+                "connect": "",
+                "add_time": "2021-09-22 13:18:13",
+                "coords": {
+                    "latitude": "52.2142",
+                    "longitude": "82.48525",
+                    "height": "850"
+                },
+                "level": {
+                    "winter": "3B",
+                    "summer": "2C",
+                    "autumn": "1D",
+                    "spring": ""
+                },
+                "images": [
+                    # Меняем картинку на вторую заглушку
+                    {"data": f"data:image/jpeg;base64,{image_to_base64('image2.jpg')}", "title": "Дорога у перевала"},
+                    # {"data": f"data:image/jpeg;base64,{image_to_base64()}", "title": "Подъём"}
+                ]
+            },
+            request_only=True
+        )
+    ]
+)
 class PerevalUpdateView(generics.UpdateAPIView):
     queryset = PerevalAdded.objects.all()
     serializer_class = PerevalAddedSerializer
