@@ -166,6 +166,9 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
                 # Обновляем связи перевала с изображениями
                 instance.pereval_images.set(images_to_keep)
 
+                # Удаляем отвязанные изображения
+                PerevalImage.objects.filter(perevaladdedimage__isnull=True).delete()
+
             # Обновляем остальные поля
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
