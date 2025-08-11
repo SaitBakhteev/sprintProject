@@ -37,11 +37,12 @@ class CoordsSerializer(serializers.ModelSerializer):
 
 
 class ImageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)  # необязательное поле, нужно только при редактировании картинок
     data = serializers.CharField(write_only=True)
 
     class Meta:
         model = PerevalImage
-        fields = ['data', 'title']
+        fields = ['id', 'data', 'title']
 
     def validate_data(self, value):
         # Удаляем префикс data:image/...;base64, если есть
@@ -142,18 +143,32 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
             # Обработка изображений
             if 'pereval_images' in validated_data:
                 images_data = validated_data.pop('pereval_images')
-                current_ids = [img['id'] for img in images_data if 'id' in img]
+                images_to_keep = []
 
-                # Удаляем старые фото, которые не вошли в ключ 'images' тела запроса
-                PerevalImage.objects.filter(pereval=instance).exclude(id__in=current_ids).delete()
 
-                # Добавляем новые
                 for img_data in images_data:
-                    if 'id' not in img_data:
-                        PerevalImage.objects.create(
-                            pereval=instance,
+                    print(img_data)
+                    if 'id' in img_data:  # Существующее изображение
+                        img = PerevalImage.objects.get(id=img_data['id'])
+                        if 'title' in img_data:
+                            img.title = img_data['title']
+                        img.save()
+                        images_to_keep.append(img)
+                    else:  # Новое изображение
+                        if 'data' not in img_data:
+                            raise serializers.ValidationError("Для нового изображения обязательно поле 'data'")
+                        img = PerevalImage.objects.create(
                             img=img_data['data'],
                             title=img_data['title']
                         )
+                        images_to_keep.append(img)
 
-            return super().update(instance, validated_data)
+                # Обновляем связи перевала с изображениями
+                instance.pereval_images.set(images_to_keep)
+
+            # Обновляем остальные поля
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+
+            instance.save()
+            return instance

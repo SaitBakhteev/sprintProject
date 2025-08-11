@@ -162,7 +162,7 @@ class PerevalDetailView(generics.RetrieveAPIView):
                 },
                 "images": [
                     # если старое фото остается, то передаем его id
-                    {"id": "<Здесь указываете id старого фото, которое не должно удаляться>"},
+                    {"id": "id фото, которое не должно удаляться", "title": ""},
 
                     # Пример второй картинки-заглушки для добавления нового фото
                     {"data": f"data:image/jpeg;base64,{image_to_base64('image2.jpg')}", "title": "Дорога у перевала"},
@@ -178,7 +178,6 @@ class PerevalUpdateView(generics.UpdateAPIView):
     http_method_names = ['patch']  # Разрешаем только PATCH
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', True)
         instance = self.get_object()
 
         try:
@@ -214,7 +213,7 @@ class PerevalUpdateView(generics.UpdateAPIView):
             serializer = self.get_serializer(
                 instance,
                 data=data,
-                partial=partial
+                partial=True
             )
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
