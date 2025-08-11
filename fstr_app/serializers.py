@@ -132,52 +132,28 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         with transaction.atomic():
-            # Проверяем статус - можно редактировать только если статус 'new'
             if instance.status != 'new':
-                raise serializers.ValidationError(
-                    "Редактирование запрещено: запись уже прошла модерацию"
-                )
+                raise serializers.ValidationError("Редактирование запрещено: запись уже прошла модерацию")
 
-            # Обрабатываем координаты
-            coords_data = validated_data.pop('coords', None)
-            if coords_data:
-                coords_serializer = self.fields['coords']
-                coords_serializer.update(instance.coords, coords_data)
+            # Обработка координат
+            if 'coords' in validated_data:
+                self.fields['coords'].update(instance.coords, validated_data.pop('coords'))
 
-            # Обрабатываем изображения
-            images_data = validated_data.pop('pereval_images', None)
-            if images_data:
-                # Получаем ID фото, которые клиент хочет оставить
-                current_images_ids = [
-                    img.get('id') for img in validated_data.get('images', [])
-                    if img.get('id')  # Только фото с ID (уже есть в БД)
-                ]
+            # Обработка изображений
+            if 'pereval_images' in validated_data:
+                images_data = validated_data.pop('pereval_images')
+                current_ids = [img['id'] for img in images_data if 'id' in img]
 
-                # 2. Удаляем фото, которых НЕТ в новом запросе, но есть в БД
-                PerevalImage.objects.filter(pereval=instance).exclude(
-                    id__in=current_images_ids  # Исключаем фото, которые остаются
-                ).delete()
+                # Удаляем старые фото, которые не вошли в ключ 'images' тела запроса
+                PerevalImage.objects.filter(pereval=instance).exclude(id__in=current_ids).delete()
 
-                # 3. Добавляем новые фото (без ID)
-                for img_data in validated_data.get('images', []):
-                    if 'id' not in img_data:  # Значит, это новое фото
-                        PerevalImage.objects.create(pereval=instance, **img_data)
+                # Добавляем новые
+                for img_data in images_data:
+                    if 'id' not in img_data:
+                        PerevalImage.objects.create(
+                            pereval=instance,
+                            img=img_data['data'],
+                            title=img_data['title']
+                        )
 
-
-                # Создаем новые изображения и связи
-                for image_data in images_data:
-                    img = PerevalImage.objects.create(
-                        img=image_data['data'],
-                        title=image_data['title']
-                    )
-                    PerevalAddedImage.objects.create(
-                        pereval=instance,
-                        image=img
-                    )
-
-            # Обновляем остальные поля
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-
-            instance.save()
-            return instance
+            return super().update(instance, validated_data)
