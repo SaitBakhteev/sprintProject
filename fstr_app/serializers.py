@@ -147,8 +147,22 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
             # Обрабатываем изображения
             images_data = validated_data.pop('pereval_images', None)
             if images_data:
-                # Удаляем старые связи через промежуточную модель PerevalAddedImage
-                PerevalAddedImage.objects.filter(pereval=instance).delete()
+                # Получаем ID фото, которые клиент хочет оставить
+                current_images_ids = [
+                    img.get('id') for img in validated_data.get('images', [])
+                    if img.get('id')  # Только фото с ID (уже есть в БД)
+                ]
+
+                # 2. Удаляем фото, которых НЕТ в новом запросе, но есть в БД
+                PerevalImage.objects.filter(pereval=instance).exclude(
+                    id__in=current_images_ids  # Исключаем фото, которые остаются
+                ).delete()
+
+                # 3. Добавляем новые фото (без ID)
+                for img_data in validated_data.get('images', []):
+                    if 'id' not in img_data:  # Значит, это новое фото
+                        PerevalImage.objects.create(pereval=instance, **img_data)
+
 
                 # Создаем новые изображения и связи
                 for image_data in images_data:
