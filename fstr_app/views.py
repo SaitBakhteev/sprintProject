@@ -1,9 +1,11 @@
+from pyexpat.errors import messages
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from rest_framework import filters
+
 from .models import PerevalAdded, User
 from .serializers import PerevalAddedSerializer
-from drf_spectacular.utils import extend_schema, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
 
 import base64
 import os
@@ -27,6 +29,19 @@ def image_to_base64(filename: str):
 
 
 @extend_schema(
+    methods=['GET'],
+    summary='Получить перевалы по email',
+    parameters=[
+        OpenApiParameter(
+            name='user__email',
+            description='Email пользователя',
+            required=True,
+            type=str
+        )
+    ]
+)
+@extend_schema(
+    methods=['POST'],
     summary="Добавить новый перевал",
     description="Создает новую запись о перевале в базе данных",
     examples=[
@@ -65,11 +80,22 @@ def image_to_base64(filename: str):
         )
     ]
 )
-class PerevalCreateView(generics.CreateAPIView):
+class PerevalListCreateView(generics.ListCreateAPIView):
     queryset = PerevalAdded.objects.all()
     serializer_class = PerevalAddedSerializer
 
-    def create(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        """Обработка GET запроса для фильтрации по email"""
+        email = request.query_params.get('user__email')
+        if not email:
+            return Response(
+                {"error": "Параметр user__email обязателен"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        self.queryset = self.queryset.filter(user__email=email)
+        return super().list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
         try:
             # Преобразуем входные данные в формат, ожидаемый сериализатором
             data = request.data.copy()
@@ -234,11 +260,35 @@ class PerevalUpdateView(generics.UpdateAPIView):
             }, status=500)
 
 
+@extend_schema(
+    summary='Получить перевалы пользователя по email',
+    description='Возвращает список всех перевалов, добавленных указанным пользователем',
+    parameters=[
+        OpenApiParameter(
+            name='user__email',
+            description='Email пользователя для фильтрации (пример: user@example.com)',
+            required=True,
+            type=str,
+            location=OpenApiParameter.QUERY
+        )
+    ],
+    examples=[
+        OpenApiExample(
+            'Пример запроса',
+            value=None,
+            description='GET /submitData/?user__email=test@example.com',
+            parameter_only=True
+        )
+    ]
+)
 class PerevalUserListView(generics.ListAPIView):
     serializer_class = PerevalAddedSerializer
 
     def get_queryset(self):
-        email = self.request.GET.get('user__email', None)
-        if email:
+        try:
+            email = self.request.query_params.get('user__email')
+            if not email:
+                raise serializers.ValidationError("Параметр user__email обязателен")
             return PerevalAdded.objects.filter(user__email=email)
-        return PerevalAdded.objects.none()
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(f"{str(e)}")
