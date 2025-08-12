@@ -11,6 +11,9 @@ class User(models.Model):
     class Meta:
         db_table = 'users'
 
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
 
 ''' Таблица с Названиями больших районов, горных систем (например, Альпы и т.п.) и т.п., выстроенная по иерархии.
 Например, 1-я запись с полями: id=1, id_parent=0, title = "Земля". 
@@ -33,6 +36,9 @@ class Coords(models.Model):
 
     class Meta:
         db_table = 'coords'
+
+    def __str__(self):
+        return f"{self.latitude}, {self.longitude}, {self.height}m"
 
 
 class PerevalAdded(models.Model):

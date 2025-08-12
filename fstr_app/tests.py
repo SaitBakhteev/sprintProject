@@ -3,8 +3,13 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+import factory
+
 from .models import User, Coords, PerevalAdded, PerevalImage
 from .serializers import PerevalAddedSerializer
+
+
+# Класс для создания симуляционных объектов User
 
 
 @pytest.mark.django_db
