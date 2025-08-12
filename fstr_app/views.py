@@ -81,6 +81,7 @@ def image_to_base64(filename: str):
 class PerevalListCreateView(generics.ListCreateAPIView):
     queryset = PerevalAdded.objects.all()
     serializer_class = PerevalAddedSerializer
+    pagination_class = None  # убираем пока пагинацию
 
     def get(self, request, *args, **kwargs):
         """Обработка GET запроса для фильтрации по email"""

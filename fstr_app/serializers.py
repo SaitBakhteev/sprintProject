@@ -75,8 +75,8 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PerevalAdded
-        fields = ['beautyTitle', 'title', 'other_titles', 'connect', 'add_time',
-                  'user', 'coords', 'winter_level', 'summer_level',
+        fields = ['beautyTitle', 'title', 'other_titles', 'connect',
+                  'add_time', 'user', 'coords', 'winter_level', 'summer_level',
                   'autumn_level', 'spring_level', 'images', 'status']
 
     def create(self, validated_data):
@@ -133,6 +133,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         with transaction.atomic():
+
             if instance.status != 'new':
                 raise serializers.ValidationError("Редактирование запрещено. Поменялся статус записи")
 
@@ -144,7 +145,6 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
             if 'pereval_images' in validated_data:
                 images_data = validated_data.pop('pereval_images')
                 images_to_keep = []
-
 
                 for img_data in images_data:
                     print(img_data)
