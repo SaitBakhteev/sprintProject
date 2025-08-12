@@ -1,7 +1,5 @@
-from pyexpat.errors import messages
 from rest_framework import generics, status, serializers
 from rest_framework.response import Response
-from rest_framework import filters
 
 from .models import PerevalAdded, User
 from .serializers import PerevalAddedSerializer
@@ -207,17 +205,7 @@ class PerevalUpdateView(generics.UpdateAPIView):
         instance = self.get_object()
 
         try:
-            # if instance.user != self.request.user:
-
-            # Преобразуем входные данные как в create
             data = request.data.copy()
-            # data['beautyTitle'] = data.pop('beautyTitle', instance.beautyTitle)
-
-            # level_data = data.pop('level', {})
-            # data['winter_level'] = level_data.get('winter', instance.winter_level)
-            # data['summer_level'] = level_data.get('summer', instance.summer_level)
-            # data['autumn_level'] = level_data.get('autumn', instance.autumn_level)
-            # data['spring_level'] = level_data.get('spring', instance.spring_level)
 
             ''' Здесь заготовка, если потребуется на уровне API контролировать, чтобы пользователи могли
               редактировать только свои перевалы. В этом случае в теле запроса ожидаем email пользователя '''

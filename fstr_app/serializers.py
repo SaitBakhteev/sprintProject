@@ -77,7 +77,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
         model = PerevalAdded
         fields = ['beautyTitle', 'title', 'other_titles', 'connect', 'add_time',
                   'user', 'coords', 'winter_level', 'summer_level',
-                  'autumn_level', 'spring_level', 'images']
+                  'autumn_level', 'spring_level', 'images', 'status']
 
     def create(self, validated_data):
         # Обработка пользователя
@@ -134,7 +134,7 @@ class PerevalAddedSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         with transaction.atomic():
             if instance.status != 'new':
-                raise serializers.ValidationError("Редактирование запрещено: запись уже прошла модерацию")
+                raise serializers.ValidationError("Редактирование запрещено. Поменялся статус записи")
 
             # Обработка координат
             if 'coords' in validated_data:
