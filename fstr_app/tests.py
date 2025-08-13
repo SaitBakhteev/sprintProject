@@ -1,11 +1,14 @@
 import pytest
+from django.test import TestCase
 from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APIClient, APITestCase
 
-from .models import User, Coords, PerevalAdded, PerevalImage
+from rest_framework import status
+from rest_framework.test import  APIClient, APITestCase
+
+from .models import PerevalAdded
+from .views import image_to_base64
 from .serializers import PerevalAddedSerializer
-from .factories import PerevalAddedFactory, PerevalAddedImageFactory
+from .factories import UserFactory, CoordsFactory, PerevalAddedFactory, PerevalImageFactory, PerevalAddedImageFactory
 
 
 # Класс для создания симуляционных объектов User
@@ -24,141 +27,151 @@ def test_pereval_creation():
 
 
 #
-# class TestSerializers(APITestCase):
-#     def setUp(self):
-#         self.user_data = {
-#             "email": "test@example.com",
-#             "first_name": "John",
-#             "last_name": "Doe",
-#             "phone": "+1234567890"
-#         }
-#         self.coords_data = {
-#             "latitude": 45.3842,
-#             "longitude": 7.1525,
-#             "height": 1200
-#         }
-#         self.image_data = {
-#             "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-#             "title": "Test Image"
-#         }
-#         self.pereval_data = {
-#             "beautyTitle": "Test Pass",
-#             "title": "Test Pass Title",
-#             "other_titles": "Alternative Name",
-#             "connect": "",
-#             "coords": self.coords_data,
-#             "user": self.user_data,
-#             "images": [self.image_data],
-#             "winter_level": "",
-#             "summer_level": "1A",
-#             "autumn_level": "",
-#             "spring_level": ""
-#         }
+class TestSerializers(TestCase):
+    def setUp(self):
+        # Создаем объекты через фабрики
+        self.user = UserFactory()
+        self.coords = CoordsFactory()
+        self.pereval = PerevalAddedFactory(user=self.user, coords=self.coords)
+        self.image = PerevalImageFactory()
+        self.pereval.pereval_images.add(self.image)
+
+        # Подготовка данных для сериализатора
+        self.pereval_data = {
+            "beautyTitle": self.pereval.beautyTitle,
+            "title": self.pereval.title,
+            "other_titles": self.pereval.other_titles,
+            "connect": self.pereval.connect,
+            "coords": {
+                "latitude": self.coords.latitude,
+                "longitude": self.coords.longitude,
+                "height": self.coords.height
+            },
+            "user": {
+                "email": self.user.email,
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "middle_name": self.user.middle_name,
+                "phone": self.user.phone
+            },
+            "images": [{
+                # Новая картинка в виде строки base64
+                "data": f"data:image/png;base64,...",  # передаем картинку как строку base64
+                "title": self.image.title
+            }],
+            "winter_level": self.pereval.winter_level,
+            "summer_level": self.pereval.summer_level,
+            "autumn_level": self.pereval.autumn_level,
+            "spring_level": self.pereval.spring_level
+        }
+
+    def test_pereval_serializer(self):
+        serializer = PerevalAddedSerializer(data=self.pereval_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        pereval = serializer.save()
+        self.assertEqual(pereval.title, self.pereval.title)
+        self.assertEqual(pereval.user.email, self.user.email)
+        self.assertEqual(pereval.coords.latitude, self.coords.latitude)
+        self.assertEqual(pereval.pereval_images.count(), 1)
+
+    def test_pereval_serializer_update(self):
+        # Создаем новые данные через фабрики для обновления
+        new_coords = CoordsFactory()
+        new_image = PerevalImageFactory()
+
+        update_data = {
+            "title": "Updated Title",
+            "coords": {
+                "latitude": new_coords.latitude,
+                "longitude": new_coords.longitude,
+                "height": new_coords.height
+            },
+            "images": [
+                {
+                    "id": self.image.id,
+                    "title": "Updated Image Title"
+                },
+                {
+                    "data": f"data:image/png;base64,...",
+                    "title": new_image.title
+                }
+            ]
+        }
+
+        serializer = PerevalAddedSerializer(instance=self.pereval, data=update_data, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        updated_instance = serializer.save()
+
+        self.assertEqual(updated_instance.title, "Updated Title")
+        self.assertEqual(updated_instance.coords.latitude, new_coords.latitude)
+        self.assertEqual(updated_instance.pereval_images.count(), 2)
 #
-#     def test_pereval_serializer(self):
-#         serializer = PerevalAddedSerializer(data=self.pereval_data)
-#         assert serializer.is_valid(), serializer.errors
-#         pereval = serializer.save()
-#         assert pereval.title == "Test Pass Title"
-#         assert pereval.user.email == "test@example.com"
-#         assert pereval.coords.latitude == 45.3842
-#         assert pereval.pereval_images.count() == 1
 #
-#     def test_pereval_serializer_update(self):
-#         # Create initial data
-#         serializer = PerevalAddedSerializer(data=self.pereval_data)
-#         serializer.is_valid()
-#         pereval = serializer.save()
+class TestAPI(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = UserFactory()
+        self.coords = CoordsFactory()
+        self.pereval = PerevalAddedFactory(user=self.user, coords=self.coords)
+
+        self.user_data = {
+            "email": self.user.email,
+            "fam": self.user.last_name,
+            "name": self.user.first_name,
+            "otc": self.user.middle_name,
+            "phone": self.user.phone
+        }
+        self.coords_data = {
+            "latitude": self.coords.latitude,
+            "longitude": self.coords.longitude,
+            "height": self.coords.height,
+        }
+        self.level_data = {
+            "winter": "",
+            "summer": "1A",
+            "autumn": "",
+            "spring": ""
+        }
+        self.image_data = {
+            "data": f"data:image/png;base64,{image_to_base64('image.jpg')}",
+            "title": "Test Image"
+        }
+        self.pereval_data = {
+            "beautyTitle": self.pereval.beautyTitle,
+            "title": self.pereval.title,
+            "other_titles": self.pereval.other_titles,
+            "connect": "",
+            "coords": self.coords_data,
+            "user": self.user_data,
+            "level": self.level_data,
+            "images": [self.image_data]
+        }
+
+    def test_create_pereval(self):
+        url = reverse('submitData')
+        response = self.client.post(url, self.pereval_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], status.HTTP_200_OK)
+        self.assertIsNotNone(response.data['id'])
+
+#         # Проверяем только-что созданный тестовый объект перевала
+        pereval = PerevalAdded.objects.get(pk=response.data['id'])
+        self.assertEqual(pereval.title, "Чуйский тракт")
+        self.assertEqual(pereval.user.email, "test@example.com")
+        self.assertEqual(pereval.coords.latitude, 45.3842)
+        self.assertEqual(pereval.pereval_images.count(), 1)
 #
-#         # Update data
-#         update_data = {
-#             "title": "Updated Title",
-#             "coords": {
-#                 "latitude": 46.0,
-#                 "longitude": 8.0,
-#                 "height": 1500
-#             },
-#             "images": [
-#                 {
-#                     "id": pereval.pereval_images.first().id,
-#                     "title": "Updated Image Title"
-#                 },
-#                 {
-#                     "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-#                     "title": "New Image"
-#                 }
-#             ]
-#         }
-#
-#         updated = PerevalAddedSerializer(instance=pereval, data=update_data, partial=True)
-#         assert updated.is_valid(), updated.errors
-#         updated_instance = updated.save()
-#         assert updated_instance.title == "Updated Title"
-#         assert updated_instance.coords.latitude == 46.0
-#         assert updated_instance.pereval_images.count() == 2
-#
-#
-# class TestAPI(APITestCase):
-#     def setUp(self):
-#         self.client = APIClient()
-#         self.user_data = {
-#             "email": "test@example.com",
-#             "fam": "Doe",
-#             "name": "John",
-#             "otc": "Smith",
-#             "phone": "+1234567890"
-#         }
-#         self.coords_data = {
-#             "latitude": "45.3842",
-#             "longitude": "7.1525",
-#             "height": "1200"
-#         }
-#         self.level_data = {
-#             "winter": "",
-#             "summer": "1A",
-#             "autumn": "",
-#             "spring": ""
-#         }
-#         self.image_data = {
-#             "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-#             "title": "Test Image"
-#         }
-#         self.pereval_data = {
-#             "beautyTitle": "Test Pass",
-#             "title": "Test Pass Title",
-#             "other_titles": "Alternative Name",
-#             "connect": "",
-#             "coords": self.coords_data,
-#             "user": self.user_data,
-#             "level": self.level_data,
-#             "images": [self.image_data]
-#         }
-#
-#     def test_create_pereval(self):
-#         url = reverse('submitData')
-#         response = self.client.post(url, self.pereval_data, format='json')
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(response.data['status'], status.HTTP_200_OK)
-#         self.assertIsNotNone(response.data['id'])
-#
-#         # Verify data was created correctly
-#         pereval = PerevalAdded.objects.get(pk=response.data['id'])
-#         self.assertEqual(pereval.title, "Test Pass Title")
-#         self.assertEqual(pereval.user.email, "test@example.com")
-#         self.assertEqual(pereval.coords.latitude, 45.3842)
-#         self.assertEqual(pereval.pereval_images.count(), 1)
-#
-#     def test_get_pereval(self):
-#         # First create a pereval
-#         create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
-#         pereval_id = create_response.data['id']
+    def test_get_pereval(self):
+        # Создаем тестовый перевал
+        create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
+        pereval_id = create_response.data['id']
 #
 #         # Then retrieve it
-#         url = reverse('pereval-detail', kwargs={'pk': pereval_id})
-#         response = self.client.get(url)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(response.data['title'], "Test Pass Title")
-#         self.assertEqual(response.data['user']['email'], "test@example.com")
+        url = reverse('pereval-detail', kwargs={'pk': pereval_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], "Чуйский тракт")
+        self.assertEqual(response.data['user']['email'], "test@example.com")
 #
 #     def test_update_pereval(self):
 #         # First create a pereval
@@ -233,32 +246,32 @@ def test_pereval_creation():
 #         response = self.client.post(url, invalid_data, format='json')
 #         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 #         self.assertEqual(response.data['status'], status.HTTP_400_BAD_REQUEST)
-#
-#
-# @pytest.mark.django_db
-# class TestEdgeCases:
-#     def test_user_email_unique(self):
-#         User.objects.create(email="test@example.com", first_name="John", last_name="Doe", phone="+1234567890")
-#         with pytest.raises(Exception):
-#             User.objects.create(email="test@example.com", first_name="Jane", last_name="Doe", phone="+9876543210")
-#
-#     def test_pereval_status_choices(self):
-#         user = User.objects.create(email="test@example.com")
-#         coords = Coords.objects.create(latitude=45.0, longitude=7.0, height=1000)
-#
-#         with pytest.raises(Exception):
-#             PerevalAdded.objects.create(
-#                 beautyTitle="Test",
-#                 title="Test",
-#                 user=user,
-#                 coords=coords,
-#                 status="invalid_status"
-#             )
-#
-#     def test_pereval_without_required_fields(self):
-#         with pytest.raises(Exception):
-#             PerevalAdded.objects.create(
-#                 beautyTitle="Test",
-#                 title="Test"
-#                 # Missing required fields: user, coords
-#             )
+# #
+# #
+# # @pytest.mark.django_db
+# # class TestEdgeCases:
+# #     def test_user_email_unique(self):
+# #         User.objects.create(email="test@example.com", first_name="John", last_name="Doe", phone="+1234567890")
+# #         with pytest.raises(Exception):
+# #             User.objects.create(email="test@example.com", first_name="Jane", last_name="Doe", phone="+9876543210")
+# #
+# #     def test_pereval_status_choices(self):
+# #         user = User.objects.create(email="test@example.com")
+# #         coords = Coords.objects.create(latitude=45.0, longitude=7.0, height=1000)
+# #
+# #         with pytest.raises(Exception):
+# #             PerevalAdded.objects.create(
+# #                 beautyTitle="Test",
+# #                 title="Test",
+# #                 user=user,
+# #                 coords=coords,
+# #                 status="invalid_status"
+# #             )
+# #
+# #     def test_pereval_without_required_fields(self):
+# #         with pytest.raises(Exception):
+# #             PerevalAdded.objects.create(
+# #                 beautyTitle="Test",
+# #                 title="Test"
+# #                 # Missing required fields: user, coords
+# #             )
