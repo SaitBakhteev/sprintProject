@@ -230,11 +230,11 @@ class TestAPI(APITestCase):
     def test_get_pereval_by_email(self):
         url = reverse('submitData') + f"?user__email={self.user_data['email']}"
         response = self.client.get(url)
-        print(f'Ответ: {response.data}')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['user']['email'], self.user_data['email'])
+        self.assertEqual(response.data[0]['other_titles'], "Вьючная API")
 #
     def test_invalid_image_data(self):
         invalid_data = self.pereval_data.copy()
