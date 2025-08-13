@@ -13,8 +13,6 @@ from .serializers import PerevalAddedSerializer
 from .factories import UserFactory, CoordsFactory, PerevalAddedFactory, PerevalImageFactory, PerevalAddedImageFactory
 
 
-# Класс для создания симуляционных объектов User
-
 @pytest.mark.django_db
 def test_pereval_creation():
     pereval = PerevalAddedFactory()
