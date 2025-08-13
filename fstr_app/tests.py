@@ -244,32 +244,3 @@ class TestAPI(APITestCase):
         response = self.client.post(url, invalid_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['status'], status.HTTP_400_BAD_REQUEST)
-# #
-# #
-# # @pytest.mark.django_db
-# # class TestEdgeCases:
-# #     def test_user_email_unique(self):
-# #         User.objects.create(email="test@example.com", first_name="John", last_name="Doe", phone="+1234567890")
-# #         with pytest.raises(Exception):
-# #             User.objects.create(email="test@example.com", first_name="Jane", last_name="Doe", phone="+9876543210")
-# #
-# #     def test_pereval_status_choices(self):
-# #         user = User.objects.create(email="test@example.com")
-# #         coords = Coords.objects.create(latitude=45.0, longitude=7.0, height=1000)
-# #
-# #         with pytest.raises(Exception):
-# #             PerevalAdded.objects.create(
-# #                 beautyTitle="Test",
-# #                 title="Test",
-# #                 user=user,
-# #                 coords=coords,
-# #                 status="invalid_status"
-# #             )
-# #
-# #     def test_pereval_without_required_fields(self):
-# #         with pytest.raises(Exception):
-# #             PerevalAdded.objects.create(
-# #                 beautyTitle="Test",
-# #                 title="Test"
-# #                 # Missing required fields: user, coords
-# #             )
