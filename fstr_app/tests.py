@@ -147,68 +147,62 @@ class TestAPI(APITestCase):
             "images": [self.image_data]
         }
 
-    def test_create_pereval(self):
-        url = reverse('submitData')
-        response = self.client.post(url, self.pereval_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['status'], status.HTTP_200_OK)
-        self.assertIsNotNone(response.data['id'])
+        # Делаем запрос на создание тестового объекта перевала
+        self.create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
+        self.pk = self.create_response.data['id']
 
-#         # Проверяем только-что созданный тестовый объект перевала
-        pereval = PerevalAdded.objects.get(pk=response.data['id'])
+    def test_create_pereval(self):
+        self.assertEqual(self.create_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.create_response.data['status'], status.HTTP_200_OK)
+        self.assertIsNotNone(self.pk)
+
+        # Проверяем только-что созданный тестовый объект перевала
+        pereval = PerevalAdded.objects.get(pk=self.pk)
         self.assertEqual(pereval.title, "Чуйский тракт")
         self.assertEqual(pereval.user.email, "test@example.com")
         self.assertEqual(pereval.coords.latitude, 45.3842)
         self.assertEqual(pereval.pereval_images.count(), 1)
-#
+
     def test_get_pereval(self):
-        # Создаем тестовый перевал
-        create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
-        pereval_id = create_response.data['id']
-#
-#         # Then retrieve it
-        url = reverse('pereval-detail', kwargs={'pk': pereval_id})
+        url = reverse('pereval-detail', kwargs={'pk': self.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], "Чуйский тракт")
         self.assertEqual(response.data['user']['email'], "test@example.com")
+
+    def test_update_pereval(self):
+        # Готовим данные для обновления
+        update_data = {
+            "title": "Updated Title",
+            "coords": {
+                "latitude": "46.0",
+                "longitude": "8.0",
+                "height": "1500"
+            },
+            "images": [
+                {
+                    "id": PerevalAdded.objects.get(pk=self.pk).pereval_images.first().id,
+                    "title": "Updated Image Title"
+                },
+                {
+                    # Добавляем вторую картинку в ранее созданный тестовый объект перевала в виде условной base64-строки
+                    "data": f"data:image/png;base64,/9j/4AAQSkZJRgABAQAA...",
+                    "title": "New Image"
+                }
+            ]
+        }
+
+        # Посылаем PATCH запрос
+        url = reverse('pereval-update', kwargs={'pk': self.pk})
+        response = self.client.patch(url, update_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['state'], 1)
 #
-#     def test_update_pereval(self):
-#         # First create a pereval
-#         create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
-#         pereval_id = create_response.data['id']
-#
-#         # Prepare update data
-#         update_data = {
-#             "title": "Updated Title",
-#             "coords": {
-#                 "latitude": "46.0",
-#                 "longitude": "8.0",
-#                 "height": "1500"
-#             },
-#             "images": [
-#                 {
-#                     "id": PerevalAdded.objects.get(pk=pereval_id).pereval_images.first().id,
-#                     "title": "Updated Image Title"
-#                 },
-#                 {
-#                     "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-#                     "title": "New Image"
-#                 }
-#             ]
-#         }
-#
-#         # Send PATCH request
-#         url = reverse('pereval-update', kwargs={'pk': pereval_id})
-#         response = self.client.patch(url, update_data, format='json')
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(response.data['state'], 1)
-#
-#         # Verify updates
-#         pereval = PerevalAdded.objects.get(pk=pereval_id)
-#         self.assertEqual(pereval.title, "Updated Title")
-#         self.assertEqual(pereval.coords.latitude, 46.0)
-#         self.assertEqual(pereval.pereval_images.count(), 2)
+#         # Проверяем данные после обновления
+        pereval = PerevalAdded.objects.get(pk=self.pk)
+        self.assertEqual(pereval.title, "Updated Title")
+        self.assertEqual(pereval.coords.latitude, 46.0)
+        self.assertEqual(pereval.pereval_images.count(), 2)
 #
 #     def test_update_rejected_pereval(self):
 #         # First create a pereval
