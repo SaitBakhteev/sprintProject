@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from django.test import TestCase
 from django.urls import reverse
@@ -24,7 +26,6 @@ def test_pereval_creation():
     pereval_image = PerevalAddedImageFactory(pereval=pereval)
     assert pereval_image.pereval == pereval
     assert bytes(pereval_image.image.img)[10:20] == b'\x00\x01\x01\x01\x00H\x00H\x00\x00'
-
 
 #
 class TestSerializers(TestCase):
@@ -110,12 +111,15 @@ class TestSerializers(TestCase):
 class TestAPI(APITestCase):
     def setUp(self):
         self.client = APIClient()
+
+        ''' Мы не используем PerevalAddedFactory, поскольку будет дублирование объекта при
+        тестировании post-запроса на создание перевала '''
+
         self.user = UserFactory()
         self.coords = CoordsFactory()
-        self.pereval = PerevalAddedFactory(user=self.user, coords=self.coords)
 
         self.user_data = {
-            "email": self.user.email,
+            "email": "test@api.com",  # здесь специально сделал замену для проверки
             "fam": self.user.last_name,
             "name": self.user.first_name,
             "otc": self.user.middle_name,
@@ -137,9 +141,9 @@ class TestAPI(APITestCase):
             "title": "Test Image"
         }
         self.pereval_data = {
-            "beautyTitle": self.pereval.beautyTitle,
-            "title": self.pereval.title,
-            "other_titles": self.pereval.other_titles,
+            "beautyTitle": "пер.",
+            "title": "Апишный тракт",
+            "other_titles": "Вьючная API",
             "connect": "",
             "coords": self.coords_data,
             "user": self.user_data,
@@ -158,8 +162,9 @@ class TestAPI(APITestCase):
 
         # Проверяем только-что созданный тестовый объект перевала
         pereval = PerevalAdded.objects.get(pk=self.pk)
-        self.assertEqual(pereval.title, "Чуйский тракт")
-        self.assertEqual(pereval.user.email, "test@example.com")
+        self.assertEqual(pereval.title, "Апишный тракт")
+        self.assertEqual(pereval.other_titles, "Вьючная API")
+        self.assertEqual(pereval.user.email, "test@api.com")
         self.assertEqual(pereval.coords.latitude, 45.3842)
         self.assertEqual(pereval.pereval_images.count(), 1)
 
@@ -167,8 +172,8 @@ class TestAPI(APITestCase):
         url = reverse('pereval-detail', kwargs={'pk': self.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], "Чуйский тракт")
-        self.assertEqual(response.data['user']['email'], "test@example.com")
+        self.assertEqual(response.data['title'], "Апишный тракт")
+        self.assertEqual(response.data['user']['email'], "test@api.com")
 
     def test_update_pereval(self):
         # Готовим данные для обновления
@@ -200,46 +205,45 @@ class TestAPI(APITestCase):
 #
 #         # Проверяем данные после обновления
         pereval = PerevalAdded.objects.get(pk=self.pk)
+        images = pereval.pereval_images.all()  # получаем изображения нашего тестового перевала
         self.assertEqual(pereval.title, "Updated Title")
         self.assertEqual(pereval.coords.latitude, 46.0)
         self.assertEqual(pereval.pereval_images.count(), 2)
+        self.assertEqual(images[0].title, "Updated Image Title")
+        self.assertEqual(images[1].title, "New Image")
+
+        # Проверка байтов второго изображения
+        self.assertEqual(bytes(images[1].img),  b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00')
+
+    def test_update_rejected_pereval(self):
+#         # Меняем статуc модерации на rejected
+        pereval = PerevalAdded.objects.get(pk=self.pk)
+        pereval.status = 'rejected'
+        pereval.save()
+
+        update_data = {"title": "Should Fail"}
+        url = reverse('pereval-update', kwargs={'pk': self.pk})
+        response = self.client.patch(url, update_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['state'], 0)
 #
-#     def test_update_rejected_pereval(self):
-#         # First create a pereval
-#         create_response = self.client.post(reverse('submitData'), self.pereval_data, format='json')
-#         pereval_id = create_response.data['id']
+    def test_get_pereval_by_email(self):
+        url = reverse('submitData') + f"?user__email={self.user_data['email']}"
+        response = self.client.get(url)
+        print(f'Ответ: {response.data}')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['user']['email'], self.user_data['email'])
 #
-#         # Change status to rejected
-#         pereval = PerevalAdded.objects.get(pk=pereval_id)
-#         pereval.status = 'rejected'
-#         pereval.save()
-#
-#         # Try to update
-#         update_data = {"title": "Should Fail"}
-#         url = reverse('pereval-update', kwargs={'pk': pereval_id})
-#         response = self.client.patch(url, update_data, format='json')
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-#         self.assertEqual(response.data['state'], 0)
-#
-#     def test_get_pereval_by_email(self):
-#         # First create a pereval
-#         self.client.post(reverse('submitData'), self.pereval_data, format='json')
-#
-#         # Get by email
-#         url = reverse('submitData') + f"?user__email={self.user_data['email']}"
-#         response = self.client.get(url)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)
-#         self.assertEqual(len(response.data), 1)
-#         self.assertEqual(response.data[0]['user']['email'], self.user_data['email'])
-#
-#     def test_invalid_image_data(self):
-#         invalid_data = self.pereval_data.copy()
-#         invalid_data['images'] = [{"data": "invalid", "title": "Bad Image"}]
-#
-#         url = reverse('submitData')
-#         response = self.client.post(url, invalid_data, format='json')
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-#         self.assertEqual(response.data['status'], status.HTTP_400_BAD_REQUEST)
+    def test_invalid_image_data(self):
+        invalid_data = self.pereval_data.copy()
+        invalid_data['images'] = [{"data": "invalid", "title": "Bad Image"}]
+
+        url = reverse('submitData')
+        response = self.client.post(url, invalid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], status.HTTP_400_BAD_REQUEST)
 # #
 # #
 # # @pytest.mark.django_db
