@@ -12,7 +12,7 @@ class User(models.Model):
         db_table = 'users'
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f'{self.first_name}, {self.last_name}, {self.email}'
 
 
 ''' Таблица с Названиями больших районов, горных систем (например, Альпы и т.п.) и т.п., выстроенная по иерархии.
@@ -38,7 +38,7 @@ class Coords(models.Model):
         db_table = 'coords'
 
     def __str__(self):
-        return f"{self.latitude}, {self.longitude}, {self.height}m"
+        return f'{self.latitude}, {self.longitude}, {self.height}'
 
 
 class PerevalAdded(models.Model):
@@ -64,6 +64,9 @@ class PerevalAdded(models.Model):
 
     class Meta:
         db_table = 'pereval_added'
+
+    def __str__(self):
+        return f'{self.beautyTitle}, {self.title}, {self.other_titles}'
 
 
 class PerevalImage(models.Model):

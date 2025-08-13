@@ -21,7 +21,7 @@ def image_to_base64(filename: str):
             encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
             return encoded_string
     except FileNotFoundError:
-        return "Ошибка: файл example.jpg не найден в корне проекта"
+        return f"Ошибка: файл {filename} не найден в корне проекта"
     except Exception as e:
         return f"Ошибка при обработке файла: {str(e)}"
 
