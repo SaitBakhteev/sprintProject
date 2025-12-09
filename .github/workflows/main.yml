@@ -1,0 +1,38 @@
+name: Django CI/CD
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: |
+          pip install -r requirements.txt
+          python manage.py test
+
+  build:
+    runs-on: ubuntu-22.04
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: |
+          docker build -t sprint-img .
+
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: build
+    env:
+      HOST: ${{ secrets.VPS_HOST }}
+      USER: ${{ secrets.VPS_USER }}
+      KEY: ${{ secrets.SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to VPS
+        run: |
+          echo "$KEY" > private_key
+          chmod 600 private_key
+          scp -o StrictHostKeyChecking=no -i private_key docker-compose.yml .env $USER@$HOST:/app/
+          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "cd /app && docker-compose down && docker-compose up -d"
