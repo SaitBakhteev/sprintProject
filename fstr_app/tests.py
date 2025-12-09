@@ -168,7 +168,7 @@ class TestAPI(APITestCase):
         url = reverse('pereval-detail', kwargs={'pk': self.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], "Апишный тракт")
+        self.assertEqual(response.data['title'], "Аишный тракт")
         self.assertEqual(response.data['user']['email'], "test@api.com")
 
     def test_update_pereval(self):
@@ -178,7 +178,7 @@ class TestAPI(APITestCase):
             "coords": {
                 "latitude": "46.0",
                 "longitude": "8.0",
-                "height": "181"
+                "height": "500"
             },
             "images": [
                 {
