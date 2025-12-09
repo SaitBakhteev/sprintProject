@@ -28,7 +28,7 @@ def image_to_base64(filename: str):
 
 @extend_schema(
     methods=['GET'],
-    summary='Получить перевалы по email',
+    summary='Запросы на перевалы автора по email',
     parameters=[
         OpenApiParameter(
             name='user__email',
