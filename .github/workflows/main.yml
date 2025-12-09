@@ -61,5 +61,5 @@ jobs:
         run: |
           echo "$KEY" > private_key
           chmod 600 private_key
-          scp -o StrictHostKeyChecking=no -i private_key docker-compose.yml $USER@$HOST:~/sprintProject/
-          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "cd ~/sprintProject && docker-compose down && docker-compose up -d"
+          scp -o StrictHostKeyChecking=no -i private_key docker compose.yml $USER@$HOST:~/sprintProject/
+          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "cd ~/sprintProject && docker compose down && docker compose up -d"
