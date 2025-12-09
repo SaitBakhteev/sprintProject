@@ -178,7 +178,7 @@ class TestAPI(APITestCase):
             "coords": {
                 "latitude": "46.0",
                 "longitude": "8.0",
-                "height": "1500"
+                "height": "181"
             },
             "images": [
                 {
