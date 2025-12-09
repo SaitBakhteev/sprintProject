@@ -5,12 +5,30 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-22.04
+    env:
+      SECRET_KEY: test-key
+      FSTR_DB_HOST: localhost
+      FSTR_DB_PORT: 5432
+      FSTR_DB_NAME: test_db
+      FSTR_DB_LOGIN: postgres
+      FSTR_DB_PASS: postgres
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: pip install -r requirements.txt
       - name: Run tests
-        run: |
-          pip install -r requirements.txt
-          python manage.py test
+        run: python manage.py test
 
   build:
     runs-on: ubuntu-22.04
@@ -18,8 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker image
-        run: |
-          docker build -t sprint-img .
+        run: docker build -t sprint-img .
 
   deploy:
     runs-on: ubuntu-22.04
