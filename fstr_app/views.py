@@ -40,7 +40,7 @@ def image_to_base64(filename: str):
 )
 @extend_schema(
     methods=['POST'],
-    summary="Здесь будет новый фич",
+    summary="Создать новый перевал и добавить его в архив Федерации",
     description="Создает новую запись о перевале в базе данных",
     examples=[
         OpenApiExample(
