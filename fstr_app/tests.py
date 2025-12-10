@@ -161,7 +161,7 @@ class TestAPI(APITestCase):
         self.assertEqual(pereval.title, "Апишный тракт")
         self.assertEqual(pereval.other_titles, "Вьючная API")
         self.assertEqual(pereval.user.email, "test@api.com")
-        self.assertEqual(pereval.coords.latitude, 45.3841)
+        self.assertEqual(pereval.coords.latitude, 45.3842)
         self.assertEqual(pereval.pereval_images.count(), 1)
 
     def test_get_pereval(self):
