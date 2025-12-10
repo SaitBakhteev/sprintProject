@@ -61,5 +61,14 @@ jobs:
         run: |
           echo "$KEY" > private_key
           chmod 600 private_key
-          scp -o StrictHostKeyChecking=no -i private_key docker-compose.yml $USER@$HOST:~/sprintProject/
-          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "cd ~/sprintProject && docker compose down && docker compose up -d"
+          # 1. Копируем ВЕСЬ код (включая обновленный docker-compose.yml)
+          tar czf code.tar.gz .
+          scp -o StrictHostKeyChecking=no -i private_key code.tar.gz $USER@$HOST:~/sprintProject/
+          # 2. Распаковываем и пересобираем на VPS
+          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "
+            cd ~/sprintProject &&
+            tar xzf code.tar.gz --overwrite &&
+            docker compose build --no-cache &&
+            docker compose down &&
+            docker compose up -d
+          "
