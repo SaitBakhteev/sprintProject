@@ -6,7 +6,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('getData/', PerevalListCreateView.as_view(), name='submitData'),
+    path('submitData/', PerevalListCreateView.as_view(), name='submitData'),
     path('submitData/<int:pk>/', PerevalDetailView.as_view(), name='pereval-detail'),
     path('submitData/<int:pk>', PerevalUpdateView.as_view(), name='pereval-update'),
 ]
