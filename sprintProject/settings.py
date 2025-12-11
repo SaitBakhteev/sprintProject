@@ -69,7 +69,7 @@ DATABASES = {
     # Настройки при использовании SQLite
     'default':
         {'ENGINE': 'django.db.backends.sqlite3',
-         'NAME': BASE_DIR / 'db.sqlite'}
+         'NAME': BASE_DIR / 'sqlite3.db'}
 
     # Настройки при использовании PostqreSQL
     # 'default': {
