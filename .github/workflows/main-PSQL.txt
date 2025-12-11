@@ -1,4 +1,4 @@
-name: Django CI/CD (SQLite)
+name: Django CI/CD
 
 on: [push]
 
@@ -7,17 +7,36 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       SECRET_KEY: test-key
-      DATABASE_URL: sqlite:///test_db.sqlite3
+      FSTR_DB_HOST: localhost
+      FSTR_DB_PORT: 5432
+      FSTR_DB_NAME: test_db
+      FSTR_DB_LOGIN: postgres
+      FSTR_DB_PASS: postgres
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Setup SQLite database
+      - name: Wait for PostgreSQL
         run: |
-          touch test_db.sqlite3
-          chmod 666 test_db.sqlite3
-      - name: Run migrations
-        run: python manage.py migrate --no-input
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres && echo "PostgreSQL is ready" && exit 0
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          echo "PostgreSQL failed to start" && exit 1
       - name: Run tests
         run: python manage.py test
 
@@ -42,28 +61,16 @@ jobs:
         run: |
           echo "$KEY" > private_key
           chmod 600 private_key
-          
           # Синхронизируем файлы
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i private_key" \
             --exclude='.git' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             ./ $USER@$HOST:~/sprintProject/
-          
-          # На VPS
+          # Перезапускаем
           ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "
-            cd ~/sprintProject
-            
-            # Если sqlite3.db папка — удаляем, создаем файл
-            if [ -d sqlite3.db ]; then
-              sudo rm -rf sqlite3.db
-            fi
-            if [ ! -f sqlite3.db ]; then
-              touch sqlite3.db
-              sudo chmod 666 sqlite3.db
-            fi
-            
-            docker compose build --no-cache
-            docker compose down
+            cd ~/sprintProject &&
+            docker compose build --no-cache &&
+            docker compose down &&
             docker compose up -d
           "

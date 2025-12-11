@@ -8,3 +8,7 @@ pereval_2022-02-22-2021.sql
 # Мои кастомные файлы
 plan.txt
 models.png
+
+*.db
+*.sqlite3
+sqlite3.db

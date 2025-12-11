@@ -64,12 +64,12 @@ STATIC_URL = '/static/'
 
 WSGI_APPLICATION = 'sprintProject.wsgi.application'
 
-# Настройки для PostqreSQL
+# Настройки для SQLite
 DATABASES = {
     # Настройки при использовании SQLite
     'default':
         {'ENGINE': 'django.db.backends.sqlite3',
-         'NAME': BASE_DIR / 'sqlite3.db'}
+         'NAME': '/app/sqlite3.db'}  # так прописал, поскольку базовая директория в контейнере будет другая
 
     # Настройки при использовании PostqreSQL
     # 'default': {
