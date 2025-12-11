@@ -4,10 +4,9 @@ services:
     build: .
     image: sprint-img
     restart: unless-stopped
+    volumes:
+      - ./sqlite3.db:/app/sqlite3.db
     ports:
       - 8001:8000
     env_file:
       - .env
-
-
-

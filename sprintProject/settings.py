@@ -66,14 +66,20 @@ WSGI_APPLICATION = 'sprintProject.wsgi.application'
 
 # Настройки для PostqreSQL
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'HOST': os.getenv('FSTR_DB_HOST'),
-        'PORT': os.getenv('FSTR_DB_PORT'),
-        'NAME': os.getenv('FSTR_DB_NAME'),
-        'USER': os.getenv('FSTR_DB_LOGIN'),
-        'PASSWORD': os.getenv('FSTR_DB_PASS'),
-    }
+    # Настройки при использовании SQLite
+    'default':
+        {'ENGINE': 'django.db.backends.sqlite3',
+         'NAME': BASE_DIR / 'db.sqlite'}
+
+    # Настройки при использовании PostqreSQL
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'HOST': os.getenv('FSTR_DB_HOST'),
+    #     'PORT': os.getenv('FSTR_DB_PORT'),
+    #     'NAME': os.getenv('FSTR_DB_NAME'),
+    #     'USER': os.getenv('FSTR_DB_LOGIN'),
+    #     'PASSWORD': os.getenv('FSTR_DB_PASS'),
+    # }
 }
 
 AUTH_PASSWORD_VALIDATORS = [
