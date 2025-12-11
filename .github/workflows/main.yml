@@ -61,5 +61,16 @@ jobs:
         run: |
           echo "$KEY" > private_key
           chmod 600 private_key
-          scp -o StrictHostKeyChecking=no -i private_key docker-compose.yml $USER@$HOST:~/sprintProject/
-          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "cd ~/sprintProject && docker compose down && docker compose up -d"
+          # Синхронизируем файлы
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i private_key" \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            ./ $USER@$HOST:~/sprintProject/
+          # Перезапускаем
+          ssh -o StrictHostKeyChecking=no -i private_key $USER@$HOST "
+            cd ~/sprintProject &&
+            docker compose build --no-cache &&
+            docker compose down &&
+            docker compose up -d
+          "
