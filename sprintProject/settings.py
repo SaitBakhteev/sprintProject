@@ -69,7 +69,7 @@ DATABASES = {
     # Настройки при использовании SQLite
     'default':
         {'ENGINE': 'django.db.backends.sqlite3',
-         'NAME': '/app/sqlite3.db'}  # так прописал, поскольку базовая директория в контейнере будет другая
+         'NAME': BASE_DIR / 'sqlite3.db'}
 
     # Настройки при использовании PostqreSQL
     # 'default': {
